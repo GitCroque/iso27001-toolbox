@@ -8,7 +8,7 @@ from typing import Dict, List, Any
 from datetime import datetime
 from shutil import copy2
 
-from iso27001_toolkit.utils.config import get_audit_file, get_data_dir
+from iso27001_toolkit.utils.config import get_audit_file, get_data_dir, get_policies_dir
 from iso27001_toolkit.utils.controls_tracker import ControlsTracker
 from iso27001_toolkit.utils.controls_data import get_all_controls
 from iso27001_toolkit.utils.risk_manager import RiskManager
@@ -111,27 +111,75 @@ class AuditHelper:
             'assessed_at': datetime.now().isoformat()
         }
 
-    def collect_policies(self, output_dir: Path):
-        """Collecte les politiques pour l'audit"""
+    def collect_policies(self, output_dir: Path) -> Dict[str, Any]:
+        """
+        Collecte les politiques pour l'audit
+
+        Args:
+            output_dir: Répertoire de destination pour les politiques
+
+        Returns:
+            Dictionnaire avec les statistiques de copie
+        """
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        # TODO: Copier les politiques générées
-        # Pour l'instant, créer un fichier index
-        index_content = "# Politiques de sécurité de l'information\n\n"
-        index_content += f"*Collecté le {datetime.now().strftime('%Y-%m-%d %H:%M')}*\n\n"
-        index_content += "Les politiques suivantes doivent être placées dans ce répertoire:\n\n"
+        policies_source_dir = get_policies_dir()
 
-        policies = [
+        # Liste des politiques à rechercher
+        policy_files = [
             'information_security_policy.md',
             'access_control_policy.md',
             'asset_management_policy.md',
+            'cryptography_policy.md',
+            'physical_security_policy.md',
+            'operations_security_policy.md',
+            'communications_security_policy.md',
+            'supplier_relationships_policy.md',
             'incident_management_policy.md',
+            'business_continuity_policy.md',
+            'compliance_policy.md',
         ]
 
-        for policy in policies:
-            index_content += f"- [ ] {policy}\n"
+        copied_policies = []
+        missing_policies = []
+
+        # Copier les politiques existantes
+        for policy_file in policy_files:
+            source_path = policies_source_dir / policy_file
+            if source_path.exists():
+                dest_path = output_dir / policy_file
+                copy2(source_path, dest_path)
+                copied_policies.append(policy_file)
+            else:
+                missing_policies.append(policy_file)
+
+        # Créer un fichier index
+        index_content = "# Politiques de Sécurité de l'Information\n\n"
+        index_content += f"*Collecté le {datetime.now().strftime('%Y-%m-%d %H:%M')}*\n\n"
+
+        if copied_policies:
+            index_content += f"## Politiques Collectées ({len(copied_policies)})\n\n"
+            for policy in copied_policies:
+                index_content += f"- [x] {policy}\n"
+            index_content += "\n"
+
+        if missing_policies:
+            index_content += f"## Politiques Manquantes ({len(missing_policies)})\n\n"
+            index_content += "Les politiques suivantes n'ont pas encore été générées:\n\n"
+            for policy in missing_policies:
+                index_content += f"- [ ] {policy}\n"
+            index_content += "\n"
+            index_content += "💡 Utilisez la commande `iso27001 policies generate` pour créer ces politiques.\n"
 
         (output_dir / 'README.md').write_text(index_content, encoding='utf-8')
+
+        return {
+            'total_policies': len(policy_files),
+            'copied': len(copied_policies),
+            'missing': len(missing_policies),
+            'copied_files': copied_policies,
+            'missing_files': missing_policies
+        }
 
     def collect_controls_evidence(self, output_dir: Path):
         """Collecte les preuves d'implémentation des contrôles"""

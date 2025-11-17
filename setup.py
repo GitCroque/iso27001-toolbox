@@ -1,11 +1,23 @@
 from setuptools import setup, find_packages
+import os
+import re
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
+# Lire la version depuis __init__.py
+def get_version():
+    init_path = os.path.join("src", "iso27001_toolkit", "__init__.py")
+    with open(init_path, "r", encoding="utf-8") as f:
+        content = f.read()
+        match = re.search(r'__version__\s*=\s*["\']([^"\']+)["\']', content)
+        if match:
+            return match.group(1)
+    raise RuntimeError("Unable to find version string.")
+
 setup(
     name="iso27001-toolkit",
-    version="0.1.0",
+    version=get_version(),
     author="ISO27001 Toolkit Contributors",
     description="Suite d'outils CLI pour gérer la certification ISO 27001",
     long_description=long_description,
@@ -32,6 +44,7 @@ setup(
         "rich>=13.0.0",
         "tabulate>=0.9.0",
         "python-dateutil>=2.8.0",
+        "cryptography>=41.0.0",
     ],
     entry_points={
         "console_scripts": [

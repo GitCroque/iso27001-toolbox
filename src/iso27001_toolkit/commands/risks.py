@@ -12,6 +12,10 @@ from datetime import datetime
 
 from iso27001_toolkit.utils.risk_manager import RiskManager
 from iso27001_toolkit.utils.template_engine import TemplateEngine
+from iso27001_toolkit.constants import (
+    RISK_SCORE_MIN, RISK_SCORE_MAX,
+    RISK_COLOR_MAP, RISK_STATUS_COLOR_MAP
+)
 
 console = Console()
 
@@ -52,20 +56,8 @@ def list(category, level, status):
     table.add_column("Traitement", width=15)
 
     for risk in risks:
-        level_color = {
-            'low': 'green',
-            'medium': 'yellow',
-            'high': 'red',
-            'critical': 'bold red'
-        }.get(risk.get('risk_level', 'medium'), 'white')
-
-        status_color = {
-            'identified': 'yellow',
-            'analyzed': 'cyan',
-            'treated': 'green',
-            'accepted': 'blue',
-            'monitoring': 'magenta'
-        }.get(risk.get('status', 'identified'), 'white')
+        level_color = RISK_COLOR_MAP.get(risk.get('risk_level', 'medium'), 'white')
+        status_color = RISK_STATUS_COLOR_MAP.get(risk.get('status', 'identified'), 'white')
 
         table.add_row(
             risk.get('id', 'N/A'),
@@ -290,9 +282,9 @@ def matrix():
     likelihood_labels = ['5', '4', '3', '2', '1']
     for i, row in enumerate(matrix):
         if i == 0:
-            print(f"  P {likelihood_labels[i]} │", end="")
+            console.print(f"  P {likelihood_labels[i]} │", end="")
         else:
-            print(f"  r {likelihood_labels[i]} │", end="")
+            console.print(f"  r {likelihood_labels[i]} │", end="")
 
         for cell in row:
             cell_color = 'green'
@@ -304,9 +296,9 @@ def matrix():
             if cell:
                 console.print(f" [{cell_color}]{len(cell):2d}[/{cell_color}] ", end="")
             else:
-                print("  · ", end="")
-            print("│", end="")
-        print()
+                console.print("  · ", end="")
+            console.print("│", end="")
+        console.print()
 
-    print("    └────┴────┴────┴────┴────┘")
+    console.print("    └────┴────┴────┴────┴────┘")
     console.print("\n[green]Vert:[/green] Risque faible  [yellow]Jaune:[/yellow] Risque moyen  [red]Rouge:[/red] Risque élevé")

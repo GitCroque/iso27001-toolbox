@@ -7,13 +7,14 @@ import click
 from rich.console import Console
 from rich.panel import Panel
 
+from iso27001_toolkit import __version__
 from iso27001_toolkit.commands import policies, controls, risks, audit
 
 console = Console()
 
 
 @click.group()
-@click.version_option(version="0.1.0")
+@click.version_option(version=__version__)
 def main():
     """
     ISO 27001 Toolkit - Suite d'outils pour gérer votre certification ISO 27001

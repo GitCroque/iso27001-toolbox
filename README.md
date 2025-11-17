@@ -17,6 +17,10 @@
 - **⚠️ Gestion des risques** : Identification, analyse et traitement des risques de sécurité
 - **📊 Préparation d'audits** : Checklists, analyses d'écarts (gap analysis), génération de SOA
 - **📄 Documentation automatisée** : Génération de rapports et documentation de conformité
+- **🔒 Chiffrement des données sensibles** : Protection par chiffrement Fernet avec gestion de clés
+- **✅ Validation robuste** : Validation stricte de toutes les entrées utilisateur
+- **📝 Logging avancé** : Système de logs rotatifs pour le suivi et le débogage
+- **🧪 Tests complets** : Suite de tests avec pytest pour assurer la qualité du code
 
 ## 🚀 Installation
 

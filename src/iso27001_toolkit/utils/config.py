@@ -55,3 +55,10 @@ def get_risks_file() -> Path:
 def get_audit_file() -> Path:
     """Retourne le fichier de données d'audit"""
     return get_data_dir() / 'audit.yml'
+
+
+def get_policies_dir() -> Path:
+    """Retourne le répertoire des politiques générées"""
+    policies_dir = CONFIG_DIR / 'policies'
+    policies_dir.mkdir(parents=True, exist_ok=True)
+    return policies_dir
