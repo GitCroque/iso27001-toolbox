@@ -6,8 +6,6 @@ import yaml
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 from datetime import datetime, timedelta
-import secrets
-
 
 from iso27001_toolkit.utils.config import get_risks_file
 
