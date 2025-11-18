@@ -34,8 +34,11 @@ def reset_singleton():
 def isolated_config_dir(tmp_path, monkeypatch):
     """Crée un répertoire de config isolé pour chaque test"""
     from iso27001_toolkit.utils import config
-    monkeypatch.setattr(config, 'CONFIG_DIR', tmp_path)
-    return tmp_path
+    # Créer un sous-répertoire unique pour éviter les collisions
+    unique_dir = tmp_path / f"config_{id(tmp_path)}"
+    unique_dir.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr(config, 'CONFIG_DIR', unique_dir)
+    return unique_dir
 
 
 class TestAuditTrailBasics:

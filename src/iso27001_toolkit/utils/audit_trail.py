@@ -16,7 +16,7 @@ from typing import Dict, List, Any, Optional
 from datetime import datetime
 from enum import Enum
 
-from iso27001_toolkit.utils.config import CONFIG_DIR
+from iso27001_toolkit.utils import config
 from iso27001_toolkit.logger import get_logger
 
 logger = get_logger(__name__)
@@ -74,8 +74,8 @@ class AuditTrail:
     def __init__(self):
         """Initialise l'audit trail"""
         # Assurer que le répertoire de config existe
-        CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-        self.audit_file = CONFIG_DIR / "audit_trail.yml"
+        config.CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+        self.audit_file = config.CONFIG_DIR / "audit_trail.yml"
         self._ensure_audit_file_exists()
 
         # Obtenir l'utilisateur actuel
@@ -151,6 +151,9 @@ class AuditTrail:
             temp_file = self.audit_file.with_suffix('.tmp')
             with open(temp_file, 'w', encoding='utf-8') as f:
                 yaml.dump(data, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
+
+            # Définir permissions restrictives
+            os.chmod(temp_file, 0o600)
 
             # Remplacer l'ancien fichier
             temp_file.replace(self.audit_file)

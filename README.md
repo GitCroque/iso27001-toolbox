@@ -2,9 +2,14 @@
 
 > Suite d'outils CLI Python open-source pour faciliter votre démarche de certification ISO 27001
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![PyPI version](https://img.shields.io/pypi/v/iso27001-toolkit.svg)](https://pypi.org/project/iso27001-toolkit/)
+[![PyPI downloads](https://img.shields.io/pypi/dm/iso27001-toolkit.svg)](https://pypi.org/project/iso27001-toolkit/)
 [![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![ISO 27001:2022](https://img.shields.io/badge/ISO%2027001-2022-green.svg)](https://www.iso.org/standard/27001)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)
+[![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](https://github.com/GitCroque/iso27001-toolbox/actions)
 
 ## 📋 Vue d'ensemble
 
@@ -29,11 +34,13 @@
 - Python 3.8 ou supérieur
 - pip (gestionnaire de paquets Python)
 
-### Installation depuis PyPI (à venir)
+### Installation depuis PyPI ⚡ (Recommandé)
 
 ```bash
 pip install iso27001-toolkit
 ```
+
+> **Note** : Une fois publié sur PyPI, c'est la méthode d'installation la plus simple !
 
 ### Installation depuis les sources
 
@@ -50,6 +57,8 @@ pip install -e .
 ```
 
 ## 📖 Guide de démarrage rapide
+
+> 🚀 **Nouveau !** Suivez notre [**Tutorial Démarrage Rapide (30 min)**](docs/tutorials/quickstart.md) pour créer votre premier projet ISO 27001 de A à Z !
 
 ### 1. Configuration initiale
 
@@ -240,6 +249,33 @@ iso27001 audit generate-soa             # Génère la Déclaration d'Applicabili
 iso27001 audit schedule <date>          # Planifie un audit
 ```
 
+#### Export PDF (`export`) 🆕
+
+```bash
+# Installation des dépendances PDF (optionnel)
+pip install iso27001-toolkit[pdf]
+
+# Export de documents individuels
+iso27001 export pdf <fichier.md> --type policy    # Exporte une politique
+iso27001 export pdf <fichier.md> --type soa       # Exporte le SoA
+iso27001 export pdf <fichier.md> --type risks     # Exporte le registre des risques
+iso27001 export pdf <fichier.md> --type audit     # Exporte un rapport d'audit
+
+# Export automatique avec génération
+iso27001 export soa                               # Génère et exporte le SoA en PDF
+iso27001 export risks                             # Génère et exporte le registre des risques
+iso27001 export policies                          # Exporte toutes les politiques en PDF
+iso27001 export all                               # Exporte tous les documents en PDF
+```
+
+**Fonctionnalités PDF :**
+- 📄 Page de couverture professionnelle avec métadonnées
+- 🎨 Styling conforme ISO 27001 (en-têtes, tableaux, couleurs)
+- 📊 Numérotation automatique des pages
+- 🔒 Marquage "Document Confidentiel"
+- 📑 Table des matières et index automatiques
+- ✅ Export A4 optimisé pour l'impression
+
 ## 🗂️ Structure des fichiers
 
 ```
@@ -392,7 +428,9 @@ Cet outil est conçu pour faciliter la démarche de certification ISO 27001, mai
 
 ## 🗺️ Roadmap
 
-- [ ] Export des rapports en PDF
+- [x] Export des rapports en PDF ✅ (v0.1.0)
+- [x] Commande de diagnostic `doctor` ✅ (v0.1.0)
+- [x] Tutorial de démarrage rapide ✅ (v0.1.0)
 - [ ] Interface web de visualisation
 - [ ] Intégration avec des outils de ticketing (Jira, etc.)
 - [ ] Templates additionnels (procédures opérationnelles)

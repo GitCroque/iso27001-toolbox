@@ -222,11 +222,238 @@ def status():
         console.print("[yellow]Exécutez [cyan]iso27001 init[/cyan] pour initialiser le projet.[/yellow]")
 
 
+@main.command()
+def doctor():
+    """Diagnostic de santé du projet ISO 27001"""
+    import os
+    import stat
+    import yaml
+    from pathlib import Path
+    from iso27001_toolkit.utils.config import CONFIG_DIR, get_data_dir
+    from iso27001_toolkit.utils.risk_manager import RiskManager
+    from iso27001_toolkit.utils.controls_tracker import ControlsTracker
+    from iso27001_toolkit.utils.audit_helper import AuditHelper
+
+    console = Console()
+
+    issues = []
+    warnings = []
+    ok_checks = []
+
+    console.print("\n[bold cyan]🩺 ISO 27001 Doctor - Diagnostic de santé[/bold cyan]\n")
+    console.print("Analyse en cours...\n")
+
+    # Check 1: Répertoire de configuration
+    console.print("[dim]Vérification du répertoire de configuration...[/dim]")
+    if CONFIG_DIR.exists():
+        ok_checks.append(f"✓ Répertoire de configuration existe: {CONFIG_DIR}")
+
+        # Vérifier les permissions
+        perms = stat.S_IMODE(os.stat(CONFIG_DIR).st_mode)
+        if perms & stat.S_IRWXO:  # World-readable
+            warnings.append(f"⚠️  Le répertoire {CONFIG_DIR} est accessible par d'autres utilisateurs (permissions: {oct(perms)})")
+        else:
+            ok_checks.append(f"✓ Permissions du répertoire sont restrictives")
+    else:
+        issues.append(f"✗ Répertoire de configuration n'existe pas: {CONFIG_DIR}")
+        console.print("\n[red]Le projet n'est pas initialisé. Exécutez:[/red]")
+        console.print("[cyan]iso27001 init[/cyan]\n")
+        return
+
+    # Check 2: Fichiers de données
+    console.print("[dim]Vérification des fichiers de données...[/dim]")
+    data_dir = get_data_dir()
+
+    expected_files = {
+        'controls.yml': 'Fichier de suivi des contrôles',
+        'risks.yml': 'Fichier de gestion des risques',
+        'audit.yml': 'Fichier de préparation d\'audit'
+    }
+
+    for filename, description in expected_files.items():
+        filepath = data_dir / filename
+        if filepath.exists():
+            ok_checks.append(f"✓ {description} existe")
+
+            # Vérifier la validité YAML
+            try:
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    yaml.safe_load(f)
+                ok_checks.append(f"✓ {description} est un YAML valide")
+            except yaml.YAMLError as e:
+                issues.append(f"✗ {description} est corrompu: {e}")
+            except Exception as e:
+                issues.append(f"✗ Erreur de lecture {description}: {e}")
+
+            # Vérifier les permissions
+            perms = stat.S_IMODE(os.stat(filepath).st_mode)
+            if perms & stat.S_IRWXO:  # World-readable/writable
+                warnings.append(f"⚠️  {description} est accessible par d'autres utilisateurs")
+        else:
+            warnings.append(f"⚠️  {description} n'existe pas")
+
+    # Check 3: Audit trail
+    console.print("[dim]Vérification de l'audit trail...[/dim]")
+    audit_file = CONFIG_DIR / "audit_trail.yml"
+    if audit_file.exists():
+        ok_checks.append(f"✓ Audit trail existe")
+
+        # Vérifier permissions strictes (0600)
+        perms = stat.S_IMODE(os.stat(audit_file).st_mode)
+        if perms == 0o600:
+            ok_checks.append(f"✓ Audit trail a des permissions sécurisées (0600)")
+        else:
+            warnings.append(f"⚠️  Audit trail devrait avoir permissions 0600, actuellement {oct(perms)}")
+
+        # Vérifier validité
+        try:
+            with open(audit_file, 'r', encoding='utf-8') as f:
+                data = yaml.safe_load(f)
+            if 'audit_trail' in data:
+                entries_count = len(data['audit_trail'])
+                ok_checks.append(f"✓ Audit trail contient {entries_count} entrées")
+        except:
+            issues.append(f"✗ Audit trail est corrompu")
+    else:
+        warnings.append(f"⚠️  Audit trail n'existe pas encore")
+
+    # Check 4: Clé de chiffrement
+    console.print("[dim]Vérification de la clé de chiffrement...[/dim]")
+    encryption_key = CONFIG_DIR / "encryption.key"
+    if encryption_key.exists():
+        ok_checks.append(f"✓ Clé de chiffrement existe")
+
+        # Vérifier permissions (doit être 0600)
+        perms = stat.S_IMODE(os.stat(encryption_key).st_mode)
+        if perms == 0o600:
+            ok_checks.append(f"✓ Clé de chiffrement a des permissions sécurisées (0600)")
+        else:
+            issues.append(f"✗ CRITIQUE: Clé de chiffrement a des permissions non sécurisées ({oct(perms)}) - devrait être 0600")
+    else:
+        ok_checks.append(f"✓ Pas de clé de chiffrement (fonctionnalité non utilisée)")
+
+    # Check 5: Intégrité des données
+    console.print("[dim]Vérification de l'intégrité des données...[/dim]")
+    try:
+        # Tester RiskManager
+        risk_manager = RiskManager()
+        risks = risk_manager.get_all_risks()
+        ok_checks.append(f"✓ RiskManager fonctionne ({len(risks)} risques)")
+
+        # Vérifier cohérence des scores
+        for risk in risks:
+            if 'impact' in risk and 'likelihood' in risk:
+                expected_score = risk['impact'] * risk['likelihood']
+                if risk.get('risk_score') != expected_score:
+                    warnings.append(f"⚠️  Risque {risk.get('id', '?')} a un score incohérent")
+
+        # Tester ControlsTracker
+        tracker = ControlsTracker()
+        stats = tracker.get_statistics()
+        if stats:
+            ok_checks.append(f"✓ ControlsTracker fonctionne ({stats['total']} contrôles)")
+
+        # Tester AuditHelper
+        helper = AuditHelper()
+        ok_checks.append(f"✓ AuditHelper fonctionne")
+
+    except Exception as e:
+        issues.append(f"✗ Erreur lors du test d'intégrité: {e}")
+
+    # Check 6: Dépendances Python
+    console.print("[dim]Vérification des dépendances...[/dim]")
+    required_modules = ['click', 'jinja2', 'yaml', 'rich', 'tabulate', 'cryptography']
+    for module in required_modules:
+        try:
+            __import__(module if module != 'yaml' else 'yaml')
+            ok_checks.append(f"✓ Module {module} est installé")
+        except ImportError:
+            issues.append(f"✗ Module {module} manquant")
+
+    # Affichage des résultats
+    console.print("\n" + "="*60 + "\n")
+
+    if issues:
+        console.print(Panel(
+            "\n".join(issues),
+            title="[red]❌ Problèmes critiques détectés[/red]",
+            border_style="red"
+        ))
+        console.print()
+
+    if warnings:
+        console.print(Panel(
+            "\n".join(warnings),
+            title="[yellow]⚠️  Avertissements[/yellow]",
+            border_style="yellow"
+        ))
+        console.print()
+
+    if ok_checks:
+        console.print(Panel(
+            "\n".join(ok_checks[:10]) + (f"\n... et {len(ok_checks)-10} autres vérifications OK" if len(ok_checks) > 10 else ""),
+            title="[green]✓ Vérifications réussies[/green]",
+            border_style="green"
+        ))
+        console.print()
+
+    # Résumé
+    total_checks = len(ok_checks) + len(warnings) + len(issues)
+    health_score = (len(ok_checks) / total_checks * 100) if total_checks > 0 else 0
+
+    if health_score >= 90:
+        health_emoji = "🌟"
+        health_status = "Excellent"
+        health_color = "green"
+    elif health_score >= 75:
+        health_emoji = "✅"
+        health_status = "Bon"
+        health_color = "green"
+    elif health_score >= 50:
+        health_emoji = "⚠️"
+        health_status = "Acceptable"
+        health_color = "yellow"
+    else:
+        health_emoji = "❌"
+        health_status = "Critique"
+        health_color = "red"
+
+    console.print(Panel(
+        f"{health_emoji} [bold]Score de santé: {health_score:.0f}%[/bold] ({health_status})\n\n"
+        f"[green]✓ {len(ok_checks)} vérifications OK[/green]\n"
+        f"[yellow]⚠️  {len(warnings)} avertissements[/yellow]\n"
+        f"[red]✗ {len(issues)} problèmes critiques[/red]",
+        title=f"[{health_color}]Résumé du diagnostic[/{health_color}]",
+        border_style=health_color
+    ))
+
+    # Recommandations
+    if issues or warnings:
+        console.print("\n[bold cyan]📝 Actions recommandées:[/bold cyan]\n")
+        if issues:
+            console.print("1. [red]Corriger les problèmes critiques immédiatement[/red]")
+        if warnings:
+            console.print("2. [yellow]Examiner et résoudre les avertissements[/yellow]")
+        if any("permissions" in w.lower() for w in warnings + issues):
+            console.print("3. [cyan]Corriger les permissions:[/cyan]")
+            console.print(f"   chmod 700 {CONFIG_DIR}")
+            console.print(f"   chmod 600 {CONFIG_DIR}/*.key {CONFIG_DIR}/audit_trail.yml")
+        console.print()
+
+
 # Enregistrer les groupes de commandes
 main.add_command(policies.policies)
 main.add_command(controls.controls)
 main.add_command(risks.risks)
 main.add_command(audit.audit)
+
+# Importer et enregistrer le groupe export (conditionnel si WeasyPrint disponible)
+try:
+    from iso27001_toolkit.commands import export
+    main.add_command(export.export)
+except ImportError:
+    # WeasyPrint non disponible - la commande export ne sera pas accessible
+    pass
 
 
 if __name__ == "__main__":
