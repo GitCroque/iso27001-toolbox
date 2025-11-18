@@ -46,6 +46,28 @@ setup(
         "python-dateutil>=2.8.0",
         "cryptography>=41.0.0",
     ],
+    extras_require={
+        "pdf": [
+            "weasyprint>=60.0",
+            "markdown2>=2.4.0",
+        ],
+        "dev": [
+            "pytest>=7.0.0",
+            "pytest-cov>=4.0.0",
+            "black>=22.0.0",
+            "flake8>=5.0.0",
+            "bandit>=1.7.0",
+        ],
+        "all": [
+            "weasyprint>=60.0",
+            "markdown2>=2.4.0",
+            "pytest>=7.0.0",
+            "pytest-cov>=4.0.0",
+            "black>=22.0.0",
+            "flake8>=5.0.0",
+            "bandit>=1.7.0",
+        ],
+    },
     entry_points={
         "console_scripts": [
             "iso27001=iso27001_toolkit.cli:main",

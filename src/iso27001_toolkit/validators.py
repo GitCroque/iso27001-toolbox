@@ -120,6 +120,8 @@ def validate_non_empty(value: str, field_name: str = "Champ") -> str:
     """
     Valide qu'une chaîne n'est pas vide
 
+    Gère les espaces Unicode et caractères invisibles
+
     Args:
         value: Valeur à valider
         field_name: Nom du champ pour le message d'erreur
@@ -130,10 +132,21 @@ def validate_non_empty(value: str, field_name: str = "Champ") -> str:
     Raises:
         ValidationError: Si la valeur est vide
     """
-    if not value or not value.strip():
+    if not value:
         raise ValidationError(f"{field_name} ne peut pas être vide")
 
-    return value.strip()
+    # Retirer tous les types de whitespace (incluant Unicode)
+    # strip() gère déjà les whitespace Unicode comme \u200B (zero-width space)
+    stripped = value.strip()
+
+    # Vérifier null bytes
+    if '\x00' in stripped:
+        raise ValidationError(f"{field_name} ne peut pas contenir de null bytes")
+
+    if not stripped:
+        raise ValidationError(f"{field_name} ne peut pas être vide")
+
+    return stripped
 
 
 def validate_integer_range(
@@ -204,18 +217,20 @@ def validate_url(url: str) -> str:
 def validate_file_path(
     file_path: str,
     must_exist: bool = False,
-    must_be_file: bool = True
+    must_be_file: bool = True,
+    allow_parent_traversal: bool = False
 ) -> Path:
     """
-    Valide un chemin de fichier
+    Valide un chemin de fichier avec protection contre path traversal
 
     Args:
         file_path: Chemin à valider
         must_exist: Le fichier doit exister (défaut: False)
         must_be_file: Doit être un fichier (pas un dossier) (défaut: True)
+        allow_parent_traversal: Autoriser '..' dans le chemin (défaut: False)
 
     Returns:
-        Objet Path validé
+        Objet Path validé et résolu
 
     Raises:
         ValidationError: Si le chemin est invalide
@@ -223,15 +238,26 @@ def validate_file_path(
     if not file_path:
         raise ValidationError("Le chemin de fichier ne peut pas être vide")
 
+    # Détecter path traversal
+    if not allow_parent_traversal and '..' in file_path:
+        raise ValidationError(f"Path traversal détecté: {file_path}")
+
     path = Path(file_path)
 
-    if must_exist and not path.exists():
+    # Résoudre le chemin pour éliminer les ./ et ../
+    # resolve() convertit en chemin absolu et résout les liens symboliques
+    try:
+        resolved_path = path.resolve(strict=must_exist)
+    except (OSError, RuntimeError) as e:
+        raise ValidationError(f"Impossible de résoudre le chemin: {e}") from e
+
+    if must_exist and not resolved_path.exists():
         raise ValidationError(f"Le chemin n'existe pas: {file_path}")
 
-    if must_exist and must_be_file and not path.is_file():
+    if must_exist and must_be_file and not resolved_path.is_file():
         raise ValidationError(f"Le chemin n'est pas un fichier: {file_path}")
 
-    return path
+    return resolved_path
 
 
 def validate_control_id(control_id: str) -> str:
@@ -290,8 +316,14 @@ def validate_percentage(value: Any) -> float:
 
 
 def sanitize_filename(filename: str) -> str:
-    """
+    r"""
     Nettoie un nom de fichier en retirant les caractères dangereux
+
+    Protection contre:
+    - Path traversal (../)
+    - Command injection ($, `, |, &)
+    - Caractères invalides (<, >, :, ", \, |, ?, *, null bytes)
+    - Chemins absolus (/, \)
 
     Args:
         filename: Nom de fichier à nettoyer
@@ -305,8 +337,20 @@ def sanitize_filename(filename: str) -> str:
     if not filename:
         raise ValidationError("Le nom de fichier ne peut pas être vide")
 
-    # Retirer les caractères dangereux
-    sanitized = re.sub(r'[<>:"/\\|?*\x00-\x1f]', '_', filename)
+    # Bloquer les chemins absolus
+    if filename.startswith(('/','\\', '~')):
+        raise ValidationError("Les chemins absolus ne sont pas autorisés")
+
+    # Bloquer path traversal explicitement
+    if '..' in filename:
+        raise ValidationError("Les séquences '..' ne sont pas autorisées (path traversal)")
+
+    # Retirer les caractères dangereux pour command injection et file system
+    # Inclut: <, >, :, ", /, \, |, ?, *, null bytes, $, `, &, ;, newlines
+    sanitized = re.sub(r'[<>:"/\\|?*\x00-\x1f$`&;]', '_', filename)
+
+    # Retirer les points en début (fichiers cachés)
+    sanitized = sanitized.lstrip('.')
 
     # Retirer les espaces en début/fin
     sanitized = sanitized.strip()
@@ -314,5 +358,9 @@ def sanitize_filename(filename: str) -> str:
     # Vérifier que le nom n'est pas vide après nettoyage
     if not sanitized:
         raise ValidationError("Le nom de fichier contient uniquement des caractères invalides")
+
+    # Limiter la longueur (255 bytes max sur la plupart des systèmes)
+    if len(sanitized.encode('utf-8')) > 255:
+        raise ValidationError("Le nom de fichier est trop long (max 255 bytes)")
 
     return sanitized

@@ -1,4 +1,30 @@
+# MANIFEST.in - Include additional files for PyPI distribution
+
+# Include documentation
 include README.md
 include LICENSE
+include CONTRIBUTING.md
+include ARCHITECTURE.md
+include SECURITY.md
+
+# Include configuration files
+include pyproject.toml
+include setup.py
 include requirements.txt
-recursive-include src/iso27001_toolkit/templates *.md *.yml
+
+# Include templates (CRITICAL for functionality)
+recursive-include src/iso27001_toolkit/templates *.md *.yml *.yaml *.html *.txt
+
+# Include data files
+recursive-include src/iso27001_toolkit/data *.yml *.yaml *.json
+
+# Exclude development and build files
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude __pycache__
+global-exclude .git*
+global-exclude .DS_Store
+
+# Exclude test files (not needed in distribution)
+prune tests
+prune .pytest_cache
