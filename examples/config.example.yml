@@ -1,0 +1,24 @@
+# Exemple de configuration pour ISO 27001 Toolkit
+# Copiez ce fichier vers ~/.iso27001/config.yml et personnalisez-le
+
+organization_name: "Votre Entreprise SARL"
+organization_address: "123 Avenue de la Sécurité"
+organization_city: "Paris"
+organization_country: "France"
+
+# Responsable de la Sécurité des Systèmes d'Information
+ciso_name: "Jean Dupont"
+ciso_email: "jean.dupont@votreentreprise.fr"
+
+# Délégué à la Protection des Données
+dpo_name: "Marie Martin"
+dpo_email: "marie.martin@votreentreprise.fr"
+
+# Dates et périodicité
+effective_date: "2024-01-01"
+review_period: 12  # en mois
+
+# Informations complémentaires
+sector: "Technologie"
+employee_count: 50
+certification_target_date: "2024-12-31"
