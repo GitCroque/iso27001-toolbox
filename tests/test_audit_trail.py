@@ -30,17 +30,25 @@ def reset_singleton():
     _reset_audit_trail_singleton()
 
 
+@pytest.fixture
+def isolated_config_dir(tmp_path, monkeypatch):
+    """Crée un répertoire de config isolé pour chaque test"""
+    from iso27001_toolkit.utils import config
+    monkeypatch.setattr(config, 'CONFIG_DIR', tmp_path)
+    return tmp_path
+
+
 class TestAuditTrailBasics:
     """Tests de base de l'audit trail"""
 
-    def test_audit_trail_initialization(self, mock_config_dir):
+    def test_audit_trail_initialization(self, isolated_config_dir):
         """Test que l'audit trail s'initialise correctement"""
         audit = AuditTrail()
 
         assert audit.audit_file.exists()
         assert audit.current_user is not None
 
-    def test_audit_file_has_restrictive_permissions(self, mock_config_dir):
+    def test_audit_file_has_restrictive_permissions(self, isolated_config_dir):
         """Test que le fichier d'audit a des permissions restrictives"""
         audit = AuditTrail()
 
@@ -49,7 +57,7 @@ class TestAuditTrailBasics:
         permissions = stat.S_IMODE(os.stat(audit.audit_file).st_mode)
         assert permissions == 0o600, f"Expected 0600, got {oct(permissions)}"
 
-    def test_log_simple_entry(self, mock_config_dir):
+    def test_log_simple_entry(self, isolated_config_dir):
         """Test d'enregistrement d'une entrée simple"""
         audit = AuditTrail()
 
@@ -67,7 +75,7 @@ class TestAuditTrailBasics:
         assert entries[0]['entity_id'] == 'RISK-001'
         assert entries[0]['success'] is True
 
-    def test_log_entry_contains_who_when_what(self, mock_config_dir):
+    def test_log_entry_contains_who_when_what(self, isolated_config_dir):
         """Test que chaque entrée contient Who/When/What/Where"""
         audit = AuditTrail()
 
@@ -104,7 +112,7 @@ class TestAuditTrailBasics:
         assert 'success' in entry
         assert entry['success'] is True
 
-    def test_log_failure(self, mock_config_dir):
+    def test_log_failure(self, isolated_config_dir):
         """Test d'enregistrement d'un échec"""
         audit = AuditTrail()
 
@@ -128,7 +136,7 @@ class TestAuditTrailBasics:
 class TestAuditTrailFiltering:
     """Tests de filtrage de l'audit trail"""
 
-    def test_filter_by_user(self, mock_config_dir):
+    def test_filter_by_user(self, isolated_config_dir):
         """Test filtrage par utilisateur"""
         audit = AuditTrail()
 
@@ -143,7 +151,7 @@ class TestAuditTrailFiltering:
         entries_other = audit.get_entries(user='nonexistent_user')
         assert len(entries_other) == 0
 
-    def test_filter_by_action(self, mock_config_dir):
+    def test_filter_by_action(self, isolated_config_dir):
         """Test filtrage par action"""
         audit = AuditTrail()
 
@@ -158,7 +166,7 @@ class TestAuditTrailFiltering:
         updated = audit.get_entries(action=AuditAction.RISK_UPDATED)
         assert len(updated) == 1
 
-    def test_filter_by_entity(self, mock_config_dir):
+    def test_filter_by_entity(self, isolated_config_dir):
         """Test filtrage par entité"""
         audit = AuditTrail()
 
@@ -178,7 +186,7 @@ class TestAuditTrailFiltering:
         assert len(risk_001) == 1
         assert risk_001[0]['entity_id'] == 'RISK-001'
 
-    def test_filter_by_level(self, mock_config_dir):
+    def test_filter_by_level(self, isolated_config_dir):
         """Test filtrage par niveau"""
         audit = AuditTrail()
 
@@ -198,7 +206,7 @@ class TestAuditTrailFiltering:
         critical_entries = audit.get_entries(level=AuditLevel.CRITICAL)
         assert len(critical_entries) == 1
 
-    def test_filter_by_date_range(self, mock_config_dir):
+    def test_filter_by_date_range(self, isolated_config_dir):
         """Test filtrage par plage de dates"""
         audit = AuditTrail()
 
@@ -220,7 +228,7 @@ class TestAuditTrailFiltering:
         entries_until = audit.get_entries(until=tomorrow)
         assert len(entries_until) == 1
 
-    def test_filter_with_limit(self, mock_config_dir):
+    def test_filter_with_limit(self, isolated_config_dir):
         """Test limitation du nombre de résultats"""
         audit = AuditTrail()
 
@@ -240,7 +248,7 @@ class TestAuditTrailFiltering:
 class TestAuditTrailEntityHistory:
     """Tests de l'historique d'une entité"""
 
-    def test_get_entity_complete_history(self, mock_config_dir):
+    def test_get_entity_complete_history(self, isolated_config_dir):
         """Test récupération de l'historique complet d'une entité"""
         audit = AuditTrail()
 
@@ -268,7 +276,7 @@ class TestAuditTrailEntityHistory:
         assert history[1]['action'] == AuditAction.RISK_UPDATED.value
         assert history[2]['action'] == AuditAction.RISK_CREATED.value
 
-    def test_entity_history_shows_modifications(self, mock_config_dir):
+    def test_entity_history_shows_modifications(self, isolated_config_dir):
         """Test que l'historique montre toutes les modifications"""
         audit = AuditTrail()
 
@@ -288,7 +296,7 @@ class TestAuditTrailEntityHistory:
 class TestAuditTrailUserActivity:
     """Tests de l'activité utilisateur"""
 
-    def test_get_user_activity(self, mock_config_dir):
+    def test_get_user_activity(self, isolated_config_dir):
         """Test récupération de l'activité d'un utilisateur"""
         audit = AuditTrail()
         user = audit.current_user
@@ -300,7 +308,7 @@ class TestAuditTrailUserActivity:
         activity = audit.get_user_activity(user)
         assert len(activity) == 3
 
-    def test_user_activity_with_date_range(self, mock_config_dir):
+    def test_user_activity_with_date_range(self, isolated_config_dir):
         """Test activité utilisateur avec plage de dates"""
         audit = AuditTrail()
         user = audit.current_user
@@ -319,7 +327,7 @@ class TestAuditTrailUserActivity:
 class TestAuditTrailCriticalEvents:
     """Tests des événements critiques"""
 
-    def test_get_critical_events(self, mock_config_dir):
+    def test_get_critical_events(self, isolated_config_dir):
         """Test récupération des événements critiques"""
         audit = AuditTrail()
 
@@ -351,7 +359,7 @@ class TestAuditTrailCriticalEvents:
 class TestAuditTrailExport:
     """Tests d'export de l'audit trail"""
 
-    def test_export_for_audit(self, mock_config_dir, tmp_path):
+    def test_export_for_audit(self, isolated_config_dir, tmp_path):
         """Test export de l'audit trail pour audit externe"""
         audit = AuditTrail()
 
@@ -378,7 +386,7 @@ class TestAuditTrailExport:
         assert 'entries' in data
         assert data['total_entries'] == 3
 
-    def test_export_with_date_range(self, mock_config_dir, tmp_path):
+    def test_export_with_date_range(self, isolated_config_dir, tmp_path):
         """Test export avec plage de dates"""
         audit = AuditTrail()
 
@@ -401,7 +409,7 @@ class TestAuditTrailExport:
 class TestAuditTrailStatistics:
     """Tests des statistiques d'audit"""
 
-    def test_get_statistics(self, mock_config_dir):
+    def test_get_statistics(self, isolated_config_dir):
         """Test génération de statistiques"""
         audit = AuditTrail()
 
@@ -420,7 +428,7 @@ class TestAuditTrailStatistics:
         assert stats['unique_users'] >= 1
         assert stats['unique_actions'] == 4
 
-    def test_statistics_by_action(self, mock_config_dir):
+    def test_statistics_by_action(self, isolated_config_dir):
         """Test statistiques par action"""
         audit = AuditTrail()
 
@@ -438,7 +446,7 @@ class TestAuditTrailStatistics:
 class TestAuditTrailImmutability:
     """Tests d'immuabilité de l'audit trail"""
 
-    def test_audit_file_is_append_only(self, mock_config_dir):
+    def test_audit_file_is_append_only(self, isolated_config_dir):
         """Test que le fichier d'audit est append-only"""
         audit = AuditTrail()
 
@@ -462,14 +470,14 @@ class TestAuditTrailImmutability:
 class TestAuditTrailSingleton:
     """Tests du pattern singleton"""
 
-    def test_get_audit_trail_returns_singleton(self, mock_config_dir):
+    def test_get_audit_trail_returns_singleton(self, isolated_config_dir):
         """Test que get_audit_trail retourne toujours la même instance"""
         audit1 = get_audit_trail()
         audit2 = get_audit_trail()
 
         assert audit1 is audit2
 
-    def test_singleton_persists_data(self, mock_config_dir):
+    def test_singleton_persists_data(self, isolated_config_dir):
         """Test que le singleton persiste les données"""
         audit1 = get_audit_trail()
         audit1.log(AuditAction.RISK_CREATED, 'risk', 'RISK-001')
@@ -483,7 +491,7 @@ class TestAuditTrailSingleton:
 class TestAuditTrailErrorHandling:
     """Tests de gestion d'erreurs"""
 
-    def test_log_does_not_crash_on_error(self, mock_config_dir):
+    def test_log_does_not_crash_on_error(self, isolated_config_dir):
         """Test que log() ne fait pas crasher en cas d'erreur"""
         audit = AuditTrail()
 
