@@ -1,0 +1,99 @@
+# GitLab CI Pipeline for ISO 27001 Compliance
+# File: .gitlab-ci.yml
+
+stages:
+  - compliance
+  - report
+  - security
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+cache:
+  paths:
+    - .cache/pip
+
+.iso27001_base:
+  image: python:3.11-slim
+  before_script:
+    - pip install --upgrade pip
+    - pip install iso27001-toolkit[pdf]
+    - |
+      if [ -d ".iso27001" ]; then
+        cp -r .iso27001 ~/.iso27001
+      fi
+
+compliance_check:
+  extends: .iso27001_base
+  stage: compliance
+  script:
+    - echo "Running ISO 27001 compliance checks..."
+    
+    # Doctor diagnostic
+    - iso27001 doctor || true
+    
+    # Check critical risks
+    - |
+      CRITICAL_RISKS=$(iso27001 risks list --level critical --count || echo "0")
+      echo "Critical risks: $CRITICAL_RISKS"
+      if [ "$CRITICAL_RISKS" -gt 5 ]; then
+        echo "ERROR: Too many critical risks ($CRITICAL_RISKS > 5)"
+        exit 1
+      fi
+    
+    # Check control maturity
+    - |
+      TOTAL=$(iso27001 controls list --count || echo "114")
+      IMPLEMENTED=$(iso27001 controls list --status implemented --count || echo "0")
+      VERIFIED=$(iso27001 controls list --status verified --count || echo "0")
+      COMPLETED=$((IMPLEMENTED + VERIFIED))
+      MATURITY=$((COMPLETED * 100 / TOTAL))
+      echo "Control maturity: $MATURITY%"
+      if [ "$MATURITY" -lt 75 ]; then
+        echo "ERROR: Control maturity below 75% ($MATURITY%)"
+        exit 1
+      fi
+  
+  only:
+    - main
+    - develop
+    - merge_requests
+
+generate_reports:
+  extends: .iso27001_base
+  stage: report
+  script:
+    - mkdir -p reports
+    
+    # Markdown reports
+    - iso27001 audit soa --output reports/soa.md
+    - iso27001 risks report --output reports/risk_register.md
+    - iso27001 audit gap-analysis --output reports/gap_analysis.md
+    
+    # PDF reports
+    - iso27001 export soa --output reports/soa.pdf
+    - iso27001 export risks --output reports/risks.pdf
+    - iso27001 export policies --output-dir reports/policies
+  
+  artifacts:
+    name: "iso27001-reports-$CI_COMMIT_REF_NAME-$CI_COMMIT_SHORT_SHA"
+    paths:
+      - reports/
+    expire_in: 90 days
+  
+  only:
+    - main
+    - tags
+
+security_scan:
+  stage: security
+  image: aquasec/trivy:latest
+  script:
+    - trivy fs --severity HIGH,CRITICAL --format json --output trivy-report.json .
+  artifacts:
+    reports:
+      container_scanning: trivy-report.json
+    expire_in: 30 days
+  only:
+    - main
+    - merge_requests

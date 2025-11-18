@@ -1,0 +1,90 @@
+# ISO 27001 Toolkit - Configuration Example
+# Copy this file to ~/.iso27001/config.yml and customize
+
+# Organization Information
+organization_name: "ACME Corporation"
+organization_address: "123 Security Street"
+organization_city: "Paris"
+organization_country: "France"
+organization_website: "https://www.acme.com"
+
+# Key Personnel
+ciso_name: "John Doe"
+ciso_email: "john.doe@acme.com"
+ciso_phone: "+33 1 23 45 67 89"
+
+dpo_name: "Jane Smith"
+dpo_email: "jane.smith@acme.com"
+dpo_phone: "+33 1 23 45 67 90"
+
+# CEO/Management
+ceo_name: "Bob Johnson"
+ceo_email: "bob.johnson@acme.com"
+
+# Policy Configuration
+effective_date: "2024-01-01"
+review_period: "Annual"  # Annual, Semi-annual, Quarterly
+
+# Governance
+governance:
+  committee_frequency: "monthly"  # monthly, quarterly
+  next_meeting: "2024-12-15"
+  members:
+    - role: "CEO"
+      name: "Bob Johnson"
+    - role: "CTO"
+      name: "Alice Brown"
+    - role: "CFO"
+      name: "Charlie White"
+
+# Risk Management
+risk_management:
+  risk_appetite: "medium"  # low, medium, high
+  risk_review_frequency: "quarterly"
+  critical_risk_threshold: 16  # Score >= threshold = critical
+  
+  # Risk matrix (Probability × Impact)
+  matrix:
+    probability_scale: 5  # 1-5
+    impact_scale: 5       # 1-5
+
+# Audit Configuration
+audit:
+  internal_frequency: "annual"
+  next_internal_audit: "2025-01-15"
+  certification_target: "2025-06-30"
+  auditor_firm: "ISO Audit Partners"
+  
+# Compliance Requirements
+compliance:
+  gdpr: true
+  pci_dss: false
+  hipaa: false
+  sox: false
+  
+# Backup Configuration
+backup:
+  frequency: "daily"
+  retention_days: 90
+  backup_location: "s3://acme-backups/iso27001"
+  
+# Notification Settings
+notifications:
+  email_enabled: true
+  email_from: "iso27001-bot@acme.com"
+  email_to: 
+    - "john.doe@acme.com"
+    - "jane.smith@acme.com"
+  
+  slack_enabled: false
+  slack_webhook: "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+  
+  critical_risk_alert: true
+  audit_reminders: true
+
+# Custom Fields (optional)
+custom:
+  industry_sector: "Technology"
+  employee_count: 250
+  annual_revenue: "10M€"
+  data_classification_levels: ["Public", "Internal", "Confidential", "Highly Confidential"]
