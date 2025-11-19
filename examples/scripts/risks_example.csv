@@ -1,0 +1,6 @@
+title,description,probability,impact,category,treatment
+Data loss,Server failure without backup,3,5,availability,mitigate
+Phishing attack,Email phishing targeting employees,4,4,confidentiality,mitigate
+GDPR compliance,Non-compliance with GDPR,2,4,compliance,accept
+Ransomware,Ransomware infection,3,5,availability,mitigate
+Insider threat,Malicious employee,2,5,confidentiality,mitigate
